@@ -1,0 +1,18 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<!DOCTYPE mapper PUBLIC "-//mybatis.org//DTD Mapper 3.0//EN" "http://mybatis.org/dtd/mybatis-3-mapper.dtd">
+<mapper namespace="com.rocky.dao.IHelloWorldDao">
+    <select id="getById" resultType="com.rocky.model.PersonPo">
+        SELECT * FROM person WHERE id = #{id}
+    </select>
+
+    <insert id="insert" useGeneratedKeys="true" keyProperty="id">
+        insert into person values( null, #{name});
+    </insert>
+
+    <insert id="batchInsert" useGeneratedKeys="true" keyProperty="id" parameterType="java.util.ArrayList">
+        INSERT INTO person (id, name) VALUES
+        <foreach collection="list" item="item" separator=",">
+            (#{item.id}, #{item.name})
+        </foreach>
+    </insert>
+</mapper>
