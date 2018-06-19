@@ -1,4 +1,4 @@
-package com.rocky.model;
+package com.rocky.real.estate.monitor.model;
 
 /**
  * Created by rocky on 18/6/11.

@@ -1,0 +1,11 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<!DOCTYPE mapper PUBLIC "-//mybatis.org//DTD Mapper 3.0//EN" "http://mybatis.org/dtd/mybatis-3-mapper.dtd">
+<mapper namespace="com.rocky.real.estate.monitor.dao.HouseDao">
+    <insert id="batchInsert">
+        INSERT ignore INTO house (id, title, thirdparty_id, zone, block, community, area, price_per_square, price_total, house_type, link, `date`, ctime, utime)
+        VALUES
+        <foreach collection="list" item="item" separator=",">
+            (#{item.id}, #{item.title}, #{item.thirdpartyId}, #{item.zone}, #{item.block}, #{item.community}, #{item.area}, #{item.pricePerSquare}, #{item.priceTotal}, #{item.houseType}, #{item.link}, #{item.date}, now(), now())
+        </foreach>
+    </insert>
+</mapper>

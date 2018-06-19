@@ -1,4 +1,4 @@
-package com.rocky.springboot.web.springboot.web;
+package com.rocky.real.estate.monitor.springboot.web.springboot.web;
 
 import org.junit.Test;
 import org.junit.runner.RunWith;

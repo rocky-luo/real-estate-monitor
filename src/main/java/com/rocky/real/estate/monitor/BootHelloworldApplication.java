@@ -1,4 +1,4 @@
-package com.rocky;
+package com.rocky.real.estate.monitor;
 
 import com.alibaba.fastjson.serializer.SerializerFeature;
 import com.alibaba.fastjson.support.config.FastJsonConfig;
@@ -9,12 +9,14 @@ import org.springframework.boot.autoconfigure.SpringBootApplication;
 import org.springframework.boot.autoconfigure.http.HttpMessageConverters;
 import org.springframework.context.annotation.Bean;
 import org.springframework.http.MediaType;
+import org.springframework.scheduling.annotation.EnableScheduling;
 
 import java.util.ArrayList;
 import java.util.List;
 
 @SpringBootApplication
-@MapperScan("com.rocky.dao")
+@MapperScan("com.rocky.real.estate.monitor.dao")
+@EnableScheduling
 public class BootHelloworldApplication {
 
 	public static void main(String[] args) {
