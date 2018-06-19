@@ -22,5 +22,5 @@ CREATE TABLE `house` (
 
 ** 启动命令
 ```
-mvn clean spring-boot:run -Prasp
+mvn clean spring-boot:run -Prasp -Dmaven.test.skip
 ```
