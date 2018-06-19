@@ -22,5 +22,5 @@ CREATE TABLE `house` (
 
 ** 启动命令
 ```
-java -jar target/real-estate-monitor-0.0.1-SNAPSHOT.jar --spring.profiles.active=rasp
+mvn clean spring-boot:run -Prasp
 ```
