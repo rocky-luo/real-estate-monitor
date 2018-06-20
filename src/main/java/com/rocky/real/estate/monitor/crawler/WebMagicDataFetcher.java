@@ -114,7 +114,8 @@ public class WebMagicDataFetcher implements PageProcessor {
                     }
                 })
                 .setDownloader(dungProxyDownloader)
-                .thread(3).run();
+                .thread(Runtime.getRuntime().availableProcessors())
+                .run();
 
     }
 
