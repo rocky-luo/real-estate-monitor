@@ -24,6 +24,7 @@ import us.codecraft.webmagic.selector.CssSelector;
 import us.codecraft.webmagic.selector.Selectable;
 
 import java.math.BigDecimal;
+import java.util.Comparator;
 import java.util.List;
 import java.util.Map;
 import java.util.concurrent.atomic.AtomicInteger;
@@ -109,6 +110,15 @@ public class WebMagicDataFetcher implements PageProcessor {
                     public void process(ResultItems resultItems, Task task) {
                         List<HousePo> pos = resultItems.get("housePos");
                         if (!CollectionUtils.isEmpty(pos)) {
+                            //为了防止死锁,需要对pos进行一次排序
+                            pos.sort(new Comparator<HousePo>() {
+                                @Override
+                                public int compare(HousePo o1, HousePo o2) {
+                                    String s1 = o1.getThirdpartyId() + o1.getDate();
+                                    String s2 = o2.getThirdpartyId() + o2.getDate();
+                                    return s1.compareTo(s2);
+                                }
+                            });
                             houseDao.batchInsert(pos);
                         }
                     }
