@@ -34,7 +34,6 @@ import java.util.regex.Pattern;
  */
 public class WebMagicDataFetcher implements PageProcessor {
     private final static Logger LOGGER = LoggerFactory.getLogger(WebMagicDataFetcher.class);
-    private Map<String, String> pageMap = Maps.newConcurrentMap();
     private Site site = Site.me()
             .setRetryTimes(3)
             .setSleepTime(0)
@@ -78,19 +77,9 @@ public class WebMagicDataFetcher implements PageProcessor {
         // 区分url
         if (queryCondition(page) == PageType.LIST) {
             List<String> otherListPages = page.getHtml().links().regex("https://cd\\.lianjia\\.com/ershoufang/[0-9a-z]+/").all();
-
             List<String> detailPages = page.getHtml().links().regex("https://cd\\.lianjia\\.com/ershoufang/[0-9]+\\.html").all();
-
-            List<String> allNeedLoadPages = Lists.newArrayList();
-            allNeedLoadPages.addAll(otherListPages);
-            allNeedLoadPages.addAll(detailPages);
-            for (String loadPage : allNeedLoadPages) {
-                String preValue = pageMap.putIfAbsent(loadPage, "1");
-                if (preValue == null) {
-                    page.addTargetRequest(loadPage);
-                }
-            }
-            return;
+            page.addTargetRequests(otherListPages);
+            page.addTargetRequests(detailPages);
         } else if (queryCondition(page) == PageType.DETAIL){
 
             HousePo housePo = houseInfoFromDetailPage(page);
