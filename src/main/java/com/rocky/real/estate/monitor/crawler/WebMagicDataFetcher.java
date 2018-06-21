@@ -97,7 +97,9 @@ public class WebMagicDataFetcher implements PageProcessor {
 
             page.putField("housePos", Lists.newArrayList(housePo));
             int c = count.addAndGet(1);
-            LOGGER.info("目前已抓取数据:" + c);
+            if (c % 100 == 0) {
+                LOGGER.info("目前已抓取数据:" + c);
+            }
         }
     }
 
