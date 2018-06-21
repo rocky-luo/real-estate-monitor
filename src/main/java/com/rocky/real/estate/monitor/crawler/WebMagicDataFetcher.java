@@ -20,7 +20,6 @@ import us.codecraft.webmagic.pipeline.Pipeline;
 import us.codecraft.webmagic.processor.PageProcessor;
 import us.codecraft.webmagic.proxy.Proxy;
 import us.codecraft.webmagic.proxy.SimpleProxyProvider;
-import us.codecraft.webmagic.selector.CssSelector;
 import us.codecraft.webmagic.selector.Selectable;
 
 import java.math.BigDecimal;
@@ -28,6 +27,7 @@ import java.util.Comparator;
 import java.util.List;
 import java.util.Map;
 import java.util.concurrent.atomic.AtomicInteger;
+import java.util.regex.Pattern;
 
 /**
  * Created by rocky on 18/6/17.
@@ -46,6 +46,8 @@ public class WebMagicDataFetcher implements PageProcessor {
     private AtomicInteger count = new AtomicInteger(0);
     private HouseDao houseDao;
     private String date;
+
+    private Pattern DETAIL_PAGE = Pattern.compile("https://cd\\.lianjia\\.com/ershoufang/[0-9]+\\.html");
 
 
     private static DungProxyDownloader dungProxyDownloader;
@@ -74,21 +76,27 @@ public class WebMagicDataFetcher implements PageProcessor {
     @Override
     public void process(Page page) {
         // 区分url
-        if (queryCondition(page) == QueryCondition.NONE) {
-            List<String> zoneUrls = zoneUrls(page);
-            page.addTargetRequests(zoneUrls);
-            return;
-        } else {
-            //抓取数据
-            for (String targeUrl : targetUrls(page)) {
-                String preValue = pageMap.putIfAbsent(targeUrl, "1");
+        if (queryCondition(page) == PageType.LIST) {
+            List<String> otherListPages = page.getHtml().links().regex("https://cd\\.lianjia\\.com/ershoufang/[0-9a-z]+/").all();
+
+            List<String> detailPages = page.getHtml().links().regex("https://cd\\.lianjia\\.com/ershoufang/[0-9]+\\.html").all();
+
+            List<String> allNeedLoadPages = Lists.newArrayList();
+            allNeedLoadPages.addAll(otherListPages);
+            allNeedLoadPages.addAll(detailPages);
+            for (String loadPage : allNeedLoadPages) {
+                String preValue = pageMap.putIfAbsent(loadPage, "1");
                 if (preValue == null) {
-                    page.addTargetRequest(targeUrl);
+                    page.addTargetRequest(loadPage);
                 }
             }
-            List<HousePo> housePos = houseInfos(page);
-            page.putField("housePos", housePos);
-            int c = count.addAndGet(housePos.size());
+            return;
+        } else if (queryCondition(page) == PageType.DETAIL){
+
+            HousePo housePo = houseInfoFromDetailPage(page);
+
+            page.putField("housePos", Lists.newArrayList(housePo));
+            int c = count.addAndGet(1);
             LOGGER.info("目前已抓取数据:" + c);
         }
     }
@@ -130,18 +138,16 @@ public class WebMagicDataFetcher implements PageProcessor {
     }
 
 
-    private enum QueryCondition {
-        NONE, //没有任何查询条件,查询首页
-        ZONE //按照区域作为条件查询
+    private enum PageType {
+        LIST, //列表页面
+        DETAIL //详情页
     }
 
-    private QueryCondition queryCondition(Page page) {
-        CssSelector cssSelector = new CssSelector("div[data-role=ershoufang]>div:first-child>a.selected");
-        String zoneSelected = page.getHtml().selectDocument(cssSelector);
-        if (Strings.isNullOrEmpty(zoneSelected)) {
-            return QueryCondition.NONE;
-        } else {
-            return QueryCondition.ZONE;
+    private PageType queryCondition(Page page) {
+        if (DETAIL_PAGE.matcher(page.getUrl().toString()).matches()) {
+            return PageType.DETAIL;
+        }else {
+            return PageType.LIST;
         }
     }
 
@@ -177,7 +183,7 @@ public class WebMagicDataFetcher implements PageProcessor {
         return targetUrls;
     }
 
-    private List<HousePo> houseInfos(Page page) {
+    private List<HousePo> houseInfosFromListPage(Page page) {
         List<HousePo> housePos = Lists.newArrayList();
         List<Selectable> infoSels = page.getHtml().css("ul.sellListContent>li>div.info").nodes();
         String zone = WebmagicUtil.xmlText(page.getHtml().css("div[data-role=ershoufang]>div:first-child>a.selected"));
@@ -208,6 +214,42 @@ public class WebMagicDataFetcher implements PageProcessor {
 
         }
         return housePos;
+
+    }
+
+    private HousePo houseInfoFromDetailPage(Page page) {
+        String title = WebmagicUtil.xmlText(page.getHtml().css(".title .main"));
+        String link = page.getUrl().toString();
+        String thirdpartyId = page.getUrl().regex("([0-9]+)\\.html", 1).toString();
+        String community = WebmagicUtil.xmlText(page.getHtml().css(".communityName .info"));
+        List<Selectable> baseContents = page.getHtml().css(".introContent .base li").nodes();
+        String houseType = null;
+        String area = null;
+        for (Selectable li : baseContents) {
+            String label = WebmagicUtil.xmlText(li.css("span"));
+            if ("房屋户型".equals(label)){
+                houseType = li.regex("[0-9]室[0-9]厅").toString();
+            }else if ("建筑面积".equals(label)){
+                area = li.regex("([0-9\\.]+)㎡", 1).toString();
+            }
+        }
+        String zone = WebmagicUtil.xmlText(page.getHtml().css(".areaName .info a").nodes().get(0));
+        String block = WebmagicUtil.xmlText(page.getHtml().css(".areaName .info a").nodes().get(1));
+        String priceTotal = WebmagicUtil.xmlText(page.getHtml().css(".price .total"));
+        String pricePerSquare = page.getHtml().css("span.unitPriceValue").regex("[0-9\\.]+").toString();
+        HousePo housePo = new HousePo();
+        housePo.setTitle(title);
+        housePo.setLink(link);
+        housePo.setThirdpartyId(thirdpartyId);
+        housePo.setCommunity(community);
+        housePo.setHouseType(houseType);
+        housePo.setArea(area==null?null:new BigDecimal(area));
+        housePo.setBlock(block);
+        housePo.setPriceTotal(new BigDecimal(priceTotal));
+        housePo.setPricePerSquare(new BigDecimal(pricePerSquare));
+        housePo.setZone(zone);
+        housePo.setDate(this.date);
+        return housePo;
 
     }
 
